@@ -1,0 +1,63 @@
+using UnityEngine;
+
+[RequireComponent(typeof(CharacterController))]
+public sealed class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 1.2f;
+    [SerializeField] private float rotationSpeed = 8.0f;
+
+    private CharacterController characterController;
+
+    private void Awake()
+    {
+        characterController = GetComponent<CharacterController>();
+    }
+
+    private void Update()
+    {
+        Vector2 input = ReadMovementInput();
+        Vector3 moveDirection = GetCameraRelativeMoveDirection(input);
+
+        if (moveDirection.sqrMagnitude > 0.0f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime);
+        }
+
+        characterController.Move(moveDirection * (moveSpeed * Time.deltaTime));
+    }
+
+    private static Vector2 ReadMovementInput()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+
+        Vector2 input = new Vector2(horizontal, vertical);
+        return Vector2.ClampMagnitude(input, 1.0f);
+    }
+
+    private static Vector3 GetCameraRelativeMoveDirection(Vector2 input)
+    {
+        Camera mainCamera = Camera.main;
+
+        if (mainCamera == null)
+        {
+            return new Vector3(input.x, 0.0f, input.y);
+        }
+
+        Transform cameraTransform = mainCamera.transform;
+        Vector3 forward = cameraTransform.forward;
+        Vector3 right = cameraTransform.right;
+
+        forward.y = 0.0f;
+        right.y = 0.0f;
+
+        forward.Normalize();
+        right.Normalize();
+
+        return (forward * input.y) + (right * input.x);
+    }
+}

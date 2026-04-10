@@ -1,0 +1,163 @@
+using UnityEngine;
+using UnityEngine.AI;
+
+[RequireComponent(typeof(NavMeshAgent))]
+public sealed class RovyController : MonoBehaviour
+{
+    public enum RovyState
+    {
+        Idle,
+        Following,
+        Waiting
+    }
+
+    [SerializeField] private Transform playerTransform;
+    [SerializeField] private float leashLength = 2.0f;
+    [SerializeField] private float moveSpeed = 1.2f;
+    [SerializeField] private RovyState currentState = RovyState.Idle;
+
+    private const float RotationSpeed = 8.0f;
+    private const float RotationThreshold = 0.0001f;
+
+    private NavMeshAgent navMeshAgent;
+
+    /// <summary>
+    /// Gets the current follow state of Rovy.
+    /// </summary>
+    public RovyState CurrentState => currentState;
+
+    private void Awake()
+    {
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        navMeshAgent.updateRotation = false;
+    }
+
+    private void Start()
+    {
+        ApplyAgentSettings();
+    }
+
+    private void Update()
+    {
+        if (!navMeshAgent.isOnNavMesh)
+        {
+            StopMovement();
+            SetState(RovyState.Idle);
+            return;
+        }
+
+        UpdateFollowBehavior();
+        UpdateRotation();
+    }
+
+    private void OnValidate()
+    {
+        leashLength = Mathf.Max(0.0f, leashLength);
+        moveSpeed = Mathf.Max(0.0f, moveSpeed);
+
+        if (navMeshAgent != null)
+        {
+            ApplyAgentSettings();
+        }
+    }
+
+    /// <summary>
+    /// Assigns the player transform that Rovy should follow.
+    /// </summary>
+    /// <param name="target">The player transform to follow.</param>
+    public void SetPlayerTransform(Transform target)
+    {
+        playerTransform = target;
+
+        if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
+        {
+            UpdateFollowBehavior();
+        }
+    }
+
+    /// <summary>
+    /// Updates the movement speed used by the NavMeshAgent.
+    /// </summary>
+    /// <param name="speed">The new movement speed.</param>
+    public void SetMoveSpeed(float speed)
+    {
+        moveSpeed = Mathf.Max(0.0f, speed);
+        ApplyAgentSettings();
+    }
+
+    /// <summary>
+    /// Updates the leash distance that determines when Rovy follows the player.
+    /// </summary>
+    /// <param name="length">The new leash length.</param>
+    public void SetLeashLength(float length)
+    {
+        leashLength = Mathf.Max(0.0f, length);
+
+        if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
+        {
+            UpdateFollowBehavior();
+        }
+    }
+
+    private void ApplyAgentSettings()
+    {
+        if (navMeshAgent == null)
+        {
+            return;
+        }
+
+        navMeshAgent.speed = moveSpeed;
+    }
+
+    private void UpdateFollowBehavior()
+    {
+        if (playerTransform == null)
+        {
+            StopMovement();
+            SetState(RovyState.Idle);
+            return;
+        }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        if (distanceToPlayer > leashLength)
+        {
+            navMeshAgent.SetDestination(playerTransform.position);
+            SetState(RovyState.Following);
+            return;
+        }
+
+        StopMovement();
+        SetState(RovyState.Waiting);
+    }
+
+    private void UpdateRotation()
+    {
+        Vector3 movementDirection = navMeshAgent.desiredVelocity;
+        movementDirection.y = 0.0f;
+
+        if (movementDirection.sqrMagnitude <= RotationThreshold)
+        {
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.LookRotation(movementDirection.normalized);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            RotationSpeed * Time.deltaTime);
+    }
+
+    private void StopMovement()
+    {
+        if (navMeshAgent.hasPath)
+        {
+            navMeshAgent.ResetPath();
+        }
+    }
+
+    private void SetState(RovyState nextState)
+    {
+        currentState = nextState;
+    }
+}
