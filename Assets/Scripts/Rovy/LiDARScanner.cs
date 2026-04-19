@@ -5,19 +5,6 @@ using System.Reflection;
 using UnityEngine;
 
 /// <summary>
-/// Identifies the semantic surface category detected by the LiDAR scanner.
-/// </summary>
-public enum SurfaceType
-{
-    Unknown,
-    Sidewalk,
-    Obstacle,
-    ParkPath,
-    Crosswalk,
-    Stairs
-}
-
-/// <summary>
 /// Represents a single LiDAR hit captured during the most recent scan pass.
 /// </summary>
 [Serializable]

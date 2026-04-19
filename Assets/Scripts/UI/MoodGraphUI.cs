@@ -170,7 +170,7 @@ public sealed class MoodGraphUI : MonoBehaviour
     {
         ResolveReferences();
         ClampSerializedFields();
-        ApplyGraphHeight();
+        //ApplyGraphHeight();
         EnsureCanvasGroup();
         EnsureLegend();
         RecreateTextureIfNeeded();
@@ -266,7 +266,7 @@ public sealed class MoodGraphUI : MonoBehaviour
 
         if (legendFont == null)
         {
-            legendFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            legendFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }
 
         if (rawImage != null)
@@ -398,7 +398,7 @@ public sealed class MoodGraphUI : MonoBehaviour
 
         for (int i = legendRoot.childCount - 1; i >= SeriesCount; i--)
         {
-            DestroyObject(legendRoot.GetChild(i).gameObject);
+            DestroyUnityObject(legendRoot.GetChild(i).gameObject);
         }
 
         legendEntries.Clear();
@@ -942,7 +942,7 @@ public sealed class MoodGraphUI : MonoBehaviour
         return (cellHeight * 2.0f) + topPadding + bottomPadding + verticalSpacing;
     }
 
-    private static void DestroyObject(UnityEngine.Object target)
+    private static void DestroyUnityObject(UnityEngine.Object target)
     {
         if (target == null)
         {

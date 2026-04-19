@@ -8,13 +8,20 @@ public sealed class RovyController : MonoBehaviour
     {
         Idle,
         Following,
-        Waiting
+        Waiting,
+        Exploring
     }
 
     [SerializeField] private Transform playerTransform;
     [SerializeField] private float leashLength = 2.0f;
     [SerializeField] private float moveSpeed = 1.2f;
     [SerializeField] private RovyState currentState = RovyState.Idle;
+
+    [SerializeField] private RouteMemory routeMemory;
+    [SerializeField] private MoodEngine moodEngine;
+    [SerializeField] private float exploreRadius = 15.0f;
+    [SerializeField] private float waypointReachedDistance = 1.0f;
+    [SerializeField] [Range(0.0f, 1.0f)] private float exploreEnergyThreshold = 0.7f;
 
     private const float RotationSpeed = 8.0f;
     private const float RotationThreshold = 0.0001f;
@@ -43,6 +50,18 @@ public sealed class RovyController : MonoBehaviour
         {
             StopMovement();
             SetState(RovyState.Idle);
+            return;
+        }
+
+        if (TryApplyLeashSafetyOverride())
+        {
+            UpdateRotation();
+            return;
+        }
+
+        if (TryUpdateExploreBehavior())
+        {
+            UpdateRotation();
             return;
         }
 
@@ -159,5 +178,84 @@ public sealed class RovyController : MonoBehaviour
     private void SetState(RovyState nextState)
     {
         currentState = nextState;
+    }
+
+    /// <summary>
+    /// Forces Rovy back into the Following state when the player moves beyond twice the leash length.
+    /// </summary>
+    /// <returns>True when the safety override took control this frame.</returns>
+    private bool TryApplyLeashSafetyOverride()
+    {
+        if (playerTransform == null)
+        {
+            return false;
+        }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        if (distanceToPlayer <= leashLength * 2.0f)
+        {
+            return false;
+        }
+
+        navMeshAgent.SetDestination(playerTransform.position);
+        SetState(RovyState.Following);
+        return true;
+    }
+
+    /// <summary>
+    /// Drives autonomous exploration toward a RouteMemory waypoint when energy is sufficient.
+    /// </summary>
+    /// <returns>True when explore behavior controlled movement this frame.</returns>
+    private bool TryUpdateExploreBehavior()
+    {
+        if (routeMemory == null || moodEngine == null)
+        {
+            return false;
+        }
+
+        if (routeMemory.KnownNodeCount <= 0)
+        {
+            return false;
+        }
+
+        if (moodEngine.Energy <= exploreEnergyThreshold)
+        {
+            return false;
+        }
+
+        bool needsNewWaypoint =
+            currentState != RovyState.Exploring ||
+            !navMeshAgent.hasPath ||
+            HasReachedCurrentWaypoint();
+
+        if (needsNewWaypoint)
+        {
+            Vector3 nextWaypoint = routeMemory.GetNextWaypoint(
+                transform.position,
+                moodEngine.Energy,
+                moodEngine.Curiosity,
+                moodEngine.Comfort);
+
+            navMeshAgent.SetDestination(nextWaypoint);
+        }
+
+        SetState(RovyState.Exploring);
+        return true;
+    }
+
+    /// <summary>
+    /// Determines whether Rovy has arrived at the active NavMesh destination within the reached threshold.
+    /// </summary>
+    /// <returns>True when the remaining distance is below <see cref="waypointReachedDistance"/>.</returns>
+    private bool HasReachedCurrentWaypoint()
+    {
+        if (!navMeshAgent.hasPath)
+        {
+            return true;
+        }
+
+        Vector3 destination = navMeshAgent.destination;
+        return Vector3.Distance(transform.position, destination) < waypointReachedDistance;
     }
 }

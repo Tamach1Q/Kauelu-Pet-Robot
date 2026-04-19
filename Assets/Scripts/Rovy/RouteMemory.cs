@@ -46,7 +46,12 @@ public enum SurfaceType
     /// <summary>
     /// An obstructed area that should be strongly discouraged.
     /// </summary>
-    Obstacle = 7
+    Obstacle = 7,
+
+    /// <summary>
+    /// A staircase surface.
+    /// </summary>
+    Stairs = 8
 }
 
 /// <summary>
@@ -503,6 +508,8 @@ public sealed class RouteMemory : MonoBehaviour
                 return 0.70f;
             case SurfaceType.Grass:
                 return 0.75f;
+            case SurfaceType.Stairs:
+                return 0.85f;
             case SurfaceType.Obstacle:
                 return 1.00f;
             default:
@@ -707,7 +714,7 @@ public sealed class RouteMemory : MonoBehaviour
 
     private SurfaceType ToSurfaceType(int value)
     {
-        if (value < (int)SurfaceType.Unknown || value > (int)SurfaceType.Obstacle)
+        if (value < (int)SurfaceType.Unknown || value > (int)SurfaceType.Stairs)
         {
             return SurfaceType.Unknown;
         }
