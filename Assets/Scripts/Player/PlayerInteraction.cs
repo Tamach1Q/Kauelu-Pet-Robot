@@ -1,5 +1,8 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
 using TMPro;
 
 /// <summary>
@@ -25,6 +28,11 @@ public sealed class PlayerInteraction : MonoBehaviour, IPlayerInteraction
     [Tooltip("The key the player presses to call Rovy's name.")]
     [SerializeField] private KeyCode callKey = KeyCode.E;
 
+    [Header("Events")]
+    [Tooltip("Fired each time the player successfully calls Rovy's name.")]
+    [SerializeField] private UnityEvent onNameCalled = new UnityEvent();
+    
+
     /// <summary>
     /// Tracks the number of name calls recorded during the current in-game day.
     /// </summary>
@@ -45,7 +53,14 @@ public sealed class PlayerInteraction : MonoBehaviour, IPlayerInteraction
 
     private void Update()
     {
-        if (Input.GetKeyDown(callKey))
+        if (Keyboard.current == null)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+
+        if (WasCallKeyPressedThisFrame(keyboard, callKey))
         {
             CallName();
         }
@@ -62,6 +77,7 @@ public sealed class PlayerInteraction : MonoBehaviour, IPlayerInteraction
         if (moodEngine != null)
         {
             moodEngine.NotifyNameCalled();
+            onNameCalled.Invoke();
         }
 
         ShowFeedback();
@@ -119,5 +135,120 @@ public sealed class PlayerInteraction : MonoBehaviour, IPlayerInteraction
     public void ResetDailyCount()
     {
         nameCallCountToday = 0;
+    }
+
+    private static bool WasCallKeyPressedThisFrame(Keyboard keyboard, KeyCode keyCode)
+    {
+        if (!TryGetInputSystemKey(keyCode, out Key key))
+        {
+            return false;
+        }
+
+        return keyboard[key].wasPressedThisFrame;
+    }
+
+    private static bool TryGetInputSystemKey(KeyCode keyCode, out Key key)
+    {
+        switch (keyCode)
+        {
+            case KeyCode.Alpha0:
+                key = Key.Digit0;
+                return true;
+            case KeyCode.Alpha1:
+                key = Key.Digit1;
+                return true;
+            case KeyCode.Alpha2:
+                key = Key.Digit2;
+                return true;
+            case KeyCode.Alpha3:
+                key = Key.Digit3;
+                return true;
+            case KeyCode.Alpha4:
+                key = Key.Digit4;
+                return true;
+            case KeyCode.Alpha5:
+                key = Key.Digit5;
+                return true;
+            case KeyCode.Alpha6:
+                key = Key.Digit6;
+                return true;
+            case KeyCode.Alpha7:
+                key = Key.Digit7;
+                return true;
+            case KeyCode.Alpha8:
+                key = Key.Digit8;
+                return true;
+            case KeyCode.Alpha9:
+                key = Key.Digit9;
+                return true;
+            case KeyCode.Return:
+                key = Key.Enter;
+                return true;
+            case KeyCode.KeypadEnter:
+                key = Key.NumpadEnter;
+                return true;
+            case KeyCode.Keypad0:
+                key = Key.Numpad0;
+                return true;
+            case KeyCode.Keypad1:
+                key = Key.Numpad1;
+                return true;
+            case KeyCode.Keypad2:
+                key = Key.Numpad2;
+                return true;
+            case KeyCode.Keypad3:
+                key = Key.Numpad3;
+                return true;
+            case KeyCode.Keypad4:
+                key = Key.Numpad4;
+                return true;
+            case KeyCode.Keypad5:
+                key = Key.Numpad5;
+                return true;
+            case KeyCode.Keypad6:
+                key = Key.Numpad6;
+                return true;
+            case KeyCode.Keypad7:
+                key = Key.Numpad7;
+                return true;
+            case KeyCode.Keypad8:
+                key = Key.Numpad8;
+                return true;
+            case KeyCode.Keypad9:
+                key = Key.Numpad9;
+                return true;
+            case KeyCode.KeypadDivide:
+                key = Key.NumpadDivide;
+                return true;
+            case KeyCode.KeypadMultiply:
+                key = Key.NumpadMultiply;
+                return true;
+            case KeyCode.KeypadMinus:
+                key = Key.NumpadMinus;
+                return true;
+            case KeyCode.KeypadPlus:
+                key = Key.NumpadPlus;
+                return true;
+            case KeyCode.KeypadPeriod:
+                key = Key.NumpadPeriod;
+                return true;
+            case KeyCode.KeypadEquals:
+                key = Key.NumpadEquals;
+                return true;
+            case KeyCode.LeftControl:
+                key = Key.LeftCtrl;
+                return true;
+            case KeyCode.RightControl:
+                key = Key.RightCtrl;
+                return true;
+        }
+
+        if (Enum.TryParse(keyCode.ToString(), true, out key))
+        {
+            return true;
+        }
+
+        key = Key.None;
+        return false;
     }
 }

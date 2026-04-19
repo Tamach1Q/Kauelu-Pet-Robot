@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
 public sealed class PlayerController : MonoBehaviour
@@ -15,7 +16,14 @@ public sealed class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        Vector2 input = ReadMovementInput();
+        if (Keyboard.current == null)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+
+        Vector2 input = ReadMovementInput(keyboard);
         Vector3 moveDirection = GetCameraRelativeMoveDirection(input);
 
         if (moveDirection.sqrMagnitude > 0.0f)
@@ -30,10 +38,14 @@ public sealed class PlayerController : MonoBehaviour
         characterController.Move(moveDirection * (moveSpeed * Time.deltaTime));
     }
 
-    private static Vector2 ReadMovementInput()
+    private static Vector2 ReadMovementInput(Keyboard keyboard)
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
+        float horizontal =
+            (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1.0f : 0.0f) -
+            (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1.0f : 0.0f);
+        float vertical =
+            (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1.0f : 0.0f) -
+            (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1.0f : 0.0f);
 
         Vector2 input = new Vector2(horizontal, vertical);
         return Vector2.ClampMagnitude(input, 1.0f);

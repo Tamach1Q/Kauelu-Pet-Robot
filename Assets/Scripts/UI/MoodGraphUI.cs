@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -183,7 +184,7 @@ public sealed class MoodGraphUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Tab))
+        if (WasToggleKeyPressedThisFrame())
         {
             TogglePanel();
         }
@@ -196,6 +197,16 @@ public sealed class MoodGraphUI : MonoBehaviour
         }
 
         SampleAndRedraw(now);
+    }
+
+    private static bool WasToggleKeyPressedThisFrame()
+    {
+        if (Keyboard.current == null)
+        {
+            return false;
+        }
+
+        return Keyboard.current.tabKey.wasPressedThisFrame;
     }
 
     private void OnValidate()

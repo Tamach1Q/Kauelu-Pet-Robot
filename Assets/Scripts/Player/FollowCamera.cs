@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 public sealed class FollowCamera : MonoBehaviour
@@ -87,10 +88,10 @@ public sealed class FollowCamera : MonoBehaviour
 
     private void UpdateOrbitAngles()
     {
-        if (Input.GetMouseButton(1))
+        if (TryReadOrbitMouseDelta(out Vector2 mouseDelta))
         {
-            float mouseX = Input.GetAxis("Mouse X");
-            float mouseY = Input.GetAxis("Mouse Y");
+            float mouseX = mouseDelta.x;
+            float mouseY = mouseDelta.y;
 
             currentYaw += mouseX * rotationSensitivity;
             currentPitch = Mathf.Clamp(
@@ -108,6 +109,26 @@ public sealed class FollowCamera : MonoBehaviour
         }
 
         currentYaw = Mathf.LerpAngle(currentYaw, target.eulerAngles.y, smoothSpeed * Time.deltaTime);
+    }
+
+    private static bool TryReadOrbitMouseDelta(out Vector2 mouseDelta)
+    {
+        if (Mouse.current == null)
+        {
+            mouseDelta = Vector2.zero;
+            return false;
+        }
+
+        Mouse mouse = Mouse.current;
+
+        if (!mouse.rightButton.isPressed)
+        {
+            mouseDelta = Vector2.zero;
+            return false;
+        }
+
+        mouseDelta = mouse.delta.ReadValue() * 0.1f;
+        return true;
     }
 
     private void UpdateCameraTransform()
