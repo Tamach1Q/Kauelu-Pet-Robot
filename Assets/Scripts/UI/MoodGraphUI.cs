@@ -534,9 +534,9 @@ public sealed class MoodGraphUI : MonoBehaviour
 
         return new MoodInputs(
             ReadFloatMember(moodEngine, "weatherScore", DefaultMoodValue),
-            ReadFloatMember(moodEngine, "temperatureCelsius", IdealTemperatureCelsius),
-            ReadIntMember(moodEngine, "walkHistory", 0),
-            ReadIntMember(moodEngine, "nameCallCount", 0));
+            ReadFloatMember(moodEngine, "temperature", IdealTemperatureCelsius),
+            ReadIntMember(moodEngine, "walkCountLastWeek", 0),
+            ReadIntMember(moodEngine, "nameCallCountToday", 0));
     }
 
     private ConfigValues ResolveConfigValues()

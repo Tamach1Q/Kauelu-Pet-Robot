@@ -429,6 +429,17 @@ public sealed class RouteMemory : MonoBehaviour
         LoadFromDisk();
     }
 
+    [ContextMenu("Reset Route Memory (Clear All)")]
+    private void ResetRouteMemoryNow()
+    {
+        knownNodes.Clear();
+        nodeMetadata.Clear();
+        lastVisitedNodeKey = null;
+        currentSimulationDay = 0;
+        isDirty = true;
+        SaveToDisk();
+    }
+
     private void ClampSerializedValues()
     {
         nodeGridSize = Mathf.Max(MinGridSize, nodeGridSize);
