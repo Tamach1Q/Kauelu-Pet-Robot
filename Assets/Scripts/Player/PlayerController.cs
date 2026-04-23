@@ -4,10 +4,15 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public sealed class PlayerController : MonoBehaviour
 {
+    private const float GravityAcceleration = -9.81f;
+    private const float GroundedVerticalVelocity = -2.0f;
+
     [SerializeField] private float moveSpeed = 1.2f;
     [SerializeField] private float rotationSpeed = 8.0f;
+    [SerializeField] private LeashSystem leashSystem;
 
     private CharacterController characterController;
+    private float verticalVelocity;
 
     private void Awake()
     {
@@ -35,9 +40,28 @@ public sealed class PlayerController : MonoBehaviour
                 rotationSpeed * Time.deltaTime);
         }
 
-        characterController.Move(moveDirection * (moveSpeed * Time.deltaTime));
+        ApplyGravity();
+
+        Vector3 leashPull = leashSystem != null ? leashSystem.CurrentPullVector : Vector3.zero;
+        Vector3 horizontalMotion = (moveDirection * moveSpeed) + leashPull;
+        Vector3 verticalMotion = Vector3.up * verticalVelocity;
+        Vector3 motion = (horizontalMotion + verticalMotion) * Time.deltaTime;
+
+        characterController.Move(motion);
     }
 
+    private void ApplyGravity()
+    {
+        if (characterController.isGrounded && verticalVelocity < 0.0f)
+        {
+            verticalVelocity = GroundedVerticalVelocity;
+            return;
+        }
+
+        verticalVelocity += GravityAcceleration * Time.deltaTime;
+    }
+
+    // ReadMovementInput と GetCameraRelativeMoveDirection は既存のまま
     private static Vector2 ReadMovementInput(Keyboard keyboard)
     {
         float horizontal =

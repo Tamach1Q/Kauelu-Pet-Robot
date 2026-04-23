@@ -14,9 +14,23 @@ public sealed class LeashSystem : MonoBehaviour
     [SerializeField] private float sagAmount = 0.4f;
     [SerializeField] private Color leashColor = Color.gray;
 
+    [Header("Pull Feedback")]
+    [SerializeField] private float leashLength = 2.0f;
+    [SerializeField] [Range(0.0f, 1.0f)] private float pullStartRatio = 0.8f;
+    [SerializeField] [Min(0.0f)] private float maxPullSpeed = 0.4f;
+    [SerializeField] private Color tautColor = Color.gray;
+    [SerializeField] private Color slackColor = new Color(0.7f, 0.7f, 0.7f, 0.8f);
+    [SerializeField] private RovyController rovyController;
+
     private LineRenderer lineRenderer;
     private Material runtimeLineMaterial;
     private Vector3[] linePositions;
+
+    /// <summary>
+    /// Gets the world-space velocity the player should receive this frame due to leash tension.
+    /// Zero when the leash is slack.
+    /// </summary>
+    public Vector3 CurrentPullVector { get; private set; }
 
     private void Reset()
     {
@@ -62,12 +76,15 @@ public sealed class LeashSystem : MonoBehaviour
     private void LateUpdate()
     {
         UpdateLeashPositions();
+        UpdatePullVector();
     }
 
     private void OnValidate()
     {
         lineSegments = Mathf.Max(MinimumLineSegments, lineSegments);
         sagAmount = Mathf.Max(0.0f, sagAmount);
+        leashLength = Mathf.Max(0.01f, leashLength);
+        maxPullSpeed = Mathf.Max(0.0f, maxPullSpeed);
 
         if (lineRenderer == null)
         {
@@ -211,6 +228,62 @@ public sealed class LeashSystem : MonoBehaviour
         }
 
         return Vector3.down;
+    }
+
+    private void UpdatePullVector()
+    {
+        if (rovyAttachPoint == null || playerAttachPoint == null)
+        {
+            CurrentPullVector = Vector3.zero;
+            return;
+        }
+
+        float distance = Vector3.Distance(rovyAttachPoint.position, playerAttachPoint.position);
+        float tautThreshold = leashLength * pullStartRatio;
+
+        if (distance <= tautThreshold)
+        {
+            CurrentPullVector = Vector3.zero;
+            ApplyLeashColor(slackColor);
+            return;
+        }
+
+        float tautness = Mathf.Clamp01((distance - tautThreshold) / Mathf.Max(0.001f, leashLength - tautThreshold));
+
+        Vector3 pullDir = rovyAttachPoint.position - playerAttachPoint.position;
+        pullDir.y = 0.0f;
+        pullDir.Normalize();
+
+        bool isExploring = rovyController != null &&
+            rovyController.CurrentState == RovyController.RovyState.Exploring;
+        float multiplier = isExploring ? 1.5f : 1.0f;
+
+        CurrentPullVector = pullDir * (maxPullSpeed * tautness * multiplier);
+        ApplyLeashColor(Color.Lerp(slackColor, tautColor, tautness));
+    }
+
+    private void ApplyLeashColor(Color color)
+    {
+        if (lineRenderer == null)
+        {
+            return;
+        }
+
+        lineRenderer.startColor = color;
+        lineRenderer.endColor = color;
+
+        if (runtimeLineMaterial != null)
+        {
+            if (runtimeLineMaterial.HasProperty("_BaseColor"))
+            {
+                runtimeLineMaterial.SetColor("_BaseColor", color);
+            }
+
+            if (runtimeLineMaterial.HasProperty("_Color"))
+            {
+                runtimeLineMaterial.SetColor("_Color", color);
+            }
+        }
     }
 
     private static Material CreateDefaultUrpLineMaterial()

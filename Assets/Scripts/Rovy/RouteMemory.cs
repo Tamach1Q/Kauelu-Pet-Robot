@@ -171,6 +171,62 @@ public sealed class RouteMemory : MonoBehaviour
     public int KnownNodeCount => knownNodes.Count;
 
     /// <summary>
+    /// Gets the number of waypoints that currently qualify as favorite routes.
+    /// </summary>
+    public int FavoriteRouteCount
+    {
+        get
+        {
+            int count = 0;
+
+            foreach (KeyValuePair<Vector3, WaypointNode> pair in knownNodes)
+            {
+                if (IsFavoriteRoute(pair.Key, pair.Value))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
+    /// <summary>
+    /// Finds the nearest favorite waypoint within a given radius of a world position.
+    /// </summary>
+    /// <param name="worldPos">The center of the search area.</param>
+    /// <param name="maxDistance">The maximum allowed distance from worldPos.</param>
+    /// <param name="waypoint">The nearest favorite waypoint position, if found.</param>
+    /// <returns>True when a qualifying favorite waypoint was found within range.</returns>
+    public bool TryGetNearestFavoriteWaypoint(Vector3 worldPos, float maxDistance, out Vector3 waypoint)
+    {
+        waypoint = default;
+        float nearestDistance = float.MaxValue;
+        bool found = false;
+
+        foreach (KeyValuePair<Vector3, WaypointNode> pair in knownNodes)
+        {
+            if (!IsFavoriteRoute(pair.Key, pair.Value))
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(worldPos, pair.Key);
+
+            if (distance > maxDistance || distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            nearestDistance = distance;
+            waypoint = pair.Key;
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>
     /// Updates the simulation day used for favorite-route aging and persistence.
     /// </summary>
     /// <param name="day">The current simulation day index.</param>
