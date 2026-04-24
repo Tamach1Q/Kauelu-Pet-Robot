@@ -1,3 +1,4 @@
+using Rovy.Control;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -11,6 +12,14 @@ public sealed class RovyController : MonoBehaviour
         Waiting,
         Exploring
     }
+
+    // NavMesh 追従モードと PID 制御モードを切り替える。
+    // PID モード時は NavMeshAgent を無効化し、Rigidbody 駆動に移譲する。
+    public enum FollowMode { NavMesh, Pid }
+
+    [Header("Follow Mode")]
+    [SerializeField] private FollowMode followMode = FollowMode.NavMesh;
+    [SerializeField] private LeadFollowController leadFollowController;
 
     [SerializeField] private Transform playerTransform;
     [SerializeField] private float leashLength = 2.0f;
@@ -42,10 +51,25 @@ public sealed class RovyController : MonoBehaviour
     private void Start()
     {
         ApplyAgentSettings();
+        ApplyFollowMode();
+    }
+
+    private void OnValidate()
+    {
+        leashLength = Mathf.Max(0.0f, leashLength);
+        moveSpeed = Mathf.Max(0.0f, moveSpeed);
+
+        if (navMeshAgent != null)
+        {
+            ApplyAgentSettings();
+        }
     }
 
     private void Update()
     {
+        if (followMode == FollowMode.Pid)
+            return;
+
         if (!navMeshAgent.isOnNavMesh)
         {
             StopMovement();
@@ -69,15 +93,30 @@ public sealed class RovyController : MonoBehaviour
         UpdateRotation();
     }
 
-    private void OnValidate()
+    // PID / NavMesh モードを切り替える（外部からも呼び出し可）
+    public void SetFollowMode(FollowMode mode)
     {
-        leashLength = Mathf.Max(0.0f, leashLength);
-        moveSpeed = Mathf.Max(0.0f, moveSpeed);
+        followMode = mode;
+        ApplyFollowMode();
+    }
 
-        if (navMeshAgent != null)
-        {
-            ApplyAgentSettings();
-        }
+    private void ApplyFollowMode()
+    {
+        bool isPid = followMode == FollowMode.Pid;
+
+        navMeshAgent.enabled = !isPid;
+
+        if (leadFollowController != null)
+            leadFollowController.enabled = isPid;
+
+        if (isPid)
+            StopMovementIfActive();
+    }
+
+    private void StopMovementIfActive()
+    {
+        if (navMeshAgent.isActiveAndEnabled && navMeshAgent.isOnNavMesh && navMeshAgent.hasPath)
+            navMeshAgent.ResetPath();
     }
 
     /// <summary>
